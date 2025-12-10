@@ -1,22 +1,70 @@
 ﻿# Community-based Sampling in Hypergraphs: Frontier Scoring Expansion Sampling
 
-This repo accompanies the thesis "_Community-based Sampling in Hypergraphs: Frontier Scoring Expansion Sampling (FSES)_". It lets you:
-- run FSES on your own hypergraph files,
-- compare to a simple random frontier baseline,
-- save sampled hypergraphs, and
-- generate community-retention plots and parameter-sweep plots to reproduce the experiments.
+This repository accompanies the thesis _“Community-based Sampling in Hypergraphs: Frontier Scoring Expansion Sampling (FSES)”_.
+
+It contains:
+
+- the implementation of FSES,
+- baseline samplers for comparison,
+- scripts to run experiments, and
+- utilities to generate community-retention and parameter-sweep plots.
+
+The main focus is **community retention**: how many distinct communities from the original hypergraph remain represented in a sampled sub-hypergraph.
 
 ## Repository layout
-- `run_fses.py` — CLI to run FSES (or the random baseline) on a hypergraph and save sampled hyperedges.
-- `plot_retention.py` — CLI to plot community retention from saved samples.
-- `plot_community_sizes.py` — CLI to plot the community size distribution from an `_assign.txt`.
-- `run_param_analysis.py` — CLI to sweep FSES parameters (k, unknown score, alpha, F_lim) and plot retention curves.
-- `fses/` — Python package with the sampling algorithms and I/O helpers.
-- `data/input/` — put `<dataset>_he.txt` and `<dataset>_assign.txt` here.
-- `data/sampled/` — samples are written here in subfolders per algorithm.
-- `data/plots/` — generated retention plots are stored here.
+
+- `run_fses.py`  
+  Command-line interface to run FSES, the random frontier baseline, JURW, or NB-HO-RW on a hypergraph and save the sampled hyperedges.
+
+- `plot_retention.py`  
+  CLI to compute and plot community retention from previously saved samples.
+
+- `plot_community_sizes.py`  
+  CLI to plot the community size distribution from a `<name>_assign.txt` file.
+
+- `run_param_analysis.py`  
+  CLI to perform one-at-a-time parameter sweeps for FSES (over `k`, unknown score, `alpha`, or `F_lim`) and plot retention curves.
+
+- `fses/`  
+  Python package with:
+  - FSES and the random frontier baseline,
+  - an in-repo implementation of JURW, and
+  - an in-repo implementation of NB-HO-RW,
+  as well as I/O helpers.
+
+- `data/input/`  
+  Place input hypergraphs and community files here (files named `<dataset>_he.txt` and `<dataset>_assign.txt`).
+
+- `data/sampled/`  
+  Directory where sampled hypergraphs are written, in subfolders per algorithm.
+
+- `data/plots/`  
+  Directory for generated plots (community retention, community size distributions, parameter sweeps).
+
+## Baseline implementations and references
+
+The thesis compares FSES against several baseline sampling methods. Some are used via the public MiDaS repository, as they were already implemented there. JURW and NB-HO-RW are included here because they were not available as public implementations at the time of writing.
+
+- **Node Sampling (NS), Forest Fire (FF), Random Walk (RW)**  
+  Implemented in the MiDaS repository:  
+  <https://github.com/young917/MiDaS>
+
+- **MiDaS hyperedge sampler**  
+  The main MiDaS algorithm, also from:  
+  <https://github.com/young917/MiDaS>
+
+- **Joint Unbiased Random Walk (JURW)**  
+  In-repo implementation based on the paper _“Sampling hypergraphs via joint unbiased random walk”_.  
+  Code: `fses/algorithms/jurw.py`.
+
+- **Non-Backtracking Higher-Order Random Walk (NB-HO-RW)**  
+  In-repo implementation based on _“Sampling nodes and hyperedges via random walks on large hypergraphs”_.  
+  Code: `fses/algorithms/nbho_rw.py`.
 
 ## Installation
+
+Create a virtual environment and install the required packages:
+
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
@@ -43,14 +91,14 @@ julia --project abcdh.jl \
 Each run produces `<output_prefix>_he.txt` and `<output_prefix>_assign.txt`, which you can place in `data/input/`.
 
 ## Running FSES
-Example: sample 5% and 10% of the nodes from `balanced`, two runs each:
+Example: sample 5% and 10% of the nodes from `balanced`, two runs each (pass a list of fractions):
 ```bash
 python run_fses.py --dataset balanced --sample-frac 0.05 0.10 --runs 2
 ```
 Key options:
 - Input: `--dataset NAME` expects `data/input/NAME_he.txt` and `NAME_assign.txt`; or use `--hyperedges <path>` plus optional `--communities <path>`.
 - Sampling sizes: use fractions only via `--sample-frac` (default `[0.25]`; e.g., `0.05` for 5%).
-- Algorithm: `--algo fses` (default) or `--algo fses-random` (random frontier baseline).
+- Algorithm: `--algo fses` (default), `--algo fses-random` (random frontier baseline), `--algo jurw`, or `--algo nbho-rw`.
 - Parameters (defaults: unknown_score=1.0, k=0.10, alpha=0.0, candidate_limit=100, refresh on): `--unknown-score`, `--k`, `--alpha`, `--candidate-limit`, `--no-refresh`.
 - Output: `data/sampled/<algo>/<name>_n<N>_<pct>pct_<params>_<timestamp>.txt` (one hyperedge per line, space-separated). Timestamps in filenames make it easy to pick the latest samples per variant.
 

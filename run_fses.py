@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import random
 import time
 from datetime import datetime
@@ -13,6 +14,8 @@ from fses.algorithms import (
     FSESParams,
     expansion_sampling_F_random,
     expansion_sampling_F_score_with_params,
+    expansion_sampling_JURW_MHNorm,
+    expansion_sampling_nbho_rw,
 )
 from fses.graph_io import EdgeList, NodeList, load_hypergraph
 
@@ -97,7 +100,12 @@ def parse_args() -> argparse.Namespace:
     src.add_argument("--hyperedges", type=str, help="Path to a hyperedge file (comma or space separated)")
     parser.add_argument("--communities", type=str, help="Path to the community assignment file (defaults to *_assign.txt next to hyperedges)")
     parser.add_argument("--data-root", type=str, default="data/input", help="Base folder when using --dataset (default: data/input)")
-    parser.add_argument("--algo", choices=["fses", "fses-random"], default="fses", help="Sampling algorithm variant")
+    parser.add_argument(
+        "--algo",
+        choices=["fses", "fses-random", "jurw", "nbho-rw"],
+        default="fses",
+        help="Sampling algorithm variant",
+    )
     parser.add_argument("--sample-frac", type=float, nargs="+", default=[0.25], help="Sample sizes as fractions (0.05 for 5%%)")
     parser.add_argument("--runs", type=int, default=1, help="Number of runs per sample size")
     parser.add_argument("--seed", type=int, default=None, help="Base random seed (auto if omitted)")
@@ -131,14 +139,27 @@ def main() -> None:
         zero_known=False,
         use_refresh=not args.no_refresh,
     )
-    if args.algo == "fses":
+
+    algo = args.algo
+    use_jurw_seed = False
+
+    if algo == "fses":
         expansion_func = lambda el, nl, n: expansion_sampling_F_score_with_params(el, nl, n, params)
         variant_folder = "FSES"
         param_suffix = "fses"
-    else:
+    elif algo == "fses-random":
         expansion_func = lambda el, nl, n: expansion_sampling_F_random(el, nl, n)
         variant_folder = "FSES_random"
         param_suffix = "random"
+    elif algo == "jurw":
+        expansion_func = lambda el, nl, n: expansion_sampling_JURW_MHNorm(el, nl, n)
+        variant_folder = "JURW"
+        param_suffix = "jurw"
+        use_jurw_seed = True
+    else:  # nbho-rw
+        expansion_func = lambda el, nl, n: expansion_sampling_nbho_rw(el, nl, n)
+        variant_folder = "NBHO_RW"
+        param_suffix = "nbho"
     if args.tag:
         param_suffix = f"{param_suffix}_{args.tag}"
 
@@ -149,6 +170,8 @@ def main() -> None:
         for run_idx in range(args.runs):
             seed = base_seed + run_idx * 9973 + target_nodes
             print(f"[run] {dataset} | target_nodes={target_nodes} | run={run_idx + 1}/{args.runs} | seed={seed}")
+            if use_jurw_seed:
+                os.environ["JURW_SEED"] = str(seed)
             result = _run_once(expansion_func, edge_list, node_list, target_nodes, seed)
             sampled_edges = result["sampled_edges"]
             params_token = f"{result.get('params', param_suffix)}"
