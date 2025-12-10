@@ -14,7 +14,7 @@ The main focus is **community retention**: how many distinct communities from th
 ## Repository layout
 
 - `run_fses.py`  
-  Command-line interface to run FSES, the random frontier baseline, JURW, or NB-HO-RW on a hypergraph and save the sampled hyperedges.
+  Command-line interface (CLI) to run FSES, the random frontier baseline, JURW, or NB-HO-RW on a hypergraph and save the sampled hyperedges.
 
 - `plot_retention.py`  
   CLI to compute and plot community retention from previously saved samples.
